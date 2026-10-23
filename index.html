@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hooke's Law Lab</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+
+body{
+    margin:0;
+    background:#0f172a;
+    color:white;
+    font-family:Segoe UI,sans-serif;
+    overflow:hidden;
+}
+
+canvas{
+    background:#020617;
+}
+
+.panel{
+    background:#111827;
+    border-left:1px solid #334155;
+}
+
+.card{
+    background:#020617;
+    border:1px solid #334155;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="h-screen flex">
+
+<!-- Simulation -->
+
+<div class="flex-1 flex flex-col">
+
+<div class="bg-slate-900 p-4 border-b border-slate-700">
+
+<h1 class="text-2xl font-bold text-cyan-400">
+Hooke's Law Interactive Laboratory
+</h1>
+
+<p class="text-slate-400">
+F = kx within the limit of proportionality
+</p>
+
+</div>
+
+<canvas id="canvas"></canvas>
+
+</div>
+
+<!-- Controls -->
+
+<div class="w-[430px] panel p-4 overflow-y-auto">
+
+<h2 class="text-cyan-300 font-bold mb-4">
+Controls
+</h2>
+
+<div>
+
+<div class="flex justify-between">
+<span>Applied Force</span>
+<span id="forceLabel">10 N</span>
+</div>
+
+<input type="range"
+id="forceSlider"
+min="0"
+max="50"
+value="10">
+
+</div>
+
+<br>
+
+<div>
+
+<div class="flex justify-between">
+<span>Spring Constant (k)</span>
+<span id="kLabel">100 N/m</span>
+</div>
+
+<input type="range"
+id="kSlider"
+min="20"
+max="500"
+value="100">
+
+</div>
+
+<br>
+
+<div>
+
+<div class="flex justify-between">
+<span>Limit of Proportionality</span>
+<span id="limitLabel">25 N</span>
+</div>
+
+<input type="range"
+id="limitSlider"
+min="10"
+max="50"
+value="25">
+
+</div>
+
+<div class="grid grid-cols-2 gap-3 mt-6">
+
+<div class="card p-4 rounded">
+
+<div class="text-xs text-slate-400">
+Extension
+</div>
+
+<div
+id="extensionReadout"
+class="text-2xl text-amber-400 font-bold">
+0.10 m
+</div>
+
+</div>
+
+<div class="card p-4 rounded">
+
+<div class="text-xs text-slate-400">
+Spring Behaviour
+</div>
+
+<div
+id="behaviour"
+class="text-xl text-green-400 font-bold">
+Linear
+</div>
+
+</div>
+
+</div>
+
+<div class="card p-4 rounded mt-4">
+
+<h3 class="font-bold text-cyan-300 mb-2">
+Live Calculation
+</h3>
+
+<div id="formula"
+class="font-mono text-amber-300">
+F = kx
+</div>
+
+</div>
+
+<div class="card p-4 rounded mt-4">
+
+<h3 class="font-bold text-cyan-300 mb-2">
+Observations
+</h3>
+
+<ul class="text-sm space-y-2 text-slate-300">
+
+<li>Increase force → larger extension</li>
+
+<li>Increase k → stiffer spring</li>
+
+<li>Beyond the limit of proportionality the graph becomes non-linear</li>
+
+<li>Hooke's Law only applies in the straight-line region</li>
+
+</ul>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+
+function resize(){
+canvas.width=window.innerWidth-430;
+canvas.height=window.innerHeight;
+}
+
+window.addEventListener("resize",resize);
+resize();
+
+const forceSlider=document.getElementById("forceSlider");
+const kSlider=document.getElementById("kSlider");
+const limitSlider=document.getElementById("limitSlider");
+
+let points=[];
+
+function update(){
+
+const F=parseFloat(forceSlider.value);
+const K=parseFloat(kSlider.value);
+const limit=parseFloat(limitSlider.value);
+
+document.getElementById("forceLabel").innerHTML=
+F+" N";
+
+document.getElementById("kLabel").innerHTML=
+K+" N/m";
+
+document.getElementById("limitLabel").innerHTML=
+limit+" N";
+
+let extension;
+
+if(F<=limit){
+
+extension=F/K;
+
+document.getElementById("behaviour").innerHTML=
+"Linear";
+
+document.getElementById("behaviour").className=
+"text-xl text-green-400 font-bold";
+
+}else{
+
+const linearPart=limit/K;
+
+const extra=(F-limit)/(K*0.25);
+
+extension=linearPart+extra;
+
+document.getElementById("behaviour").innerHTML=
+"Beyond Proportional Limit";
+
+document.getElementById("behaviour").className=
+"text-lg text-red-400 font-bold";
+
+}
+
+document.getElementById("extensionReadout")
+.innerHTML=
+extension.toFixed(3)+" m";
+
+document.getElementById("formula")
+.innerHTML=
+`
+F = ${F} N<br>
+k = ${K} N/m<br>
+x = ${extension.toFixed(3)} m
+`;
+
+return {F,K,limit,extension};
+
+}
+
+function draw(state){
+
+ctx.clearRect(
+0,0,
+canvas.width,
+canvas.height
+);
+
+const springTop=80;
+const x=200;
+
+ctx.strokeStyle="white";
+ctx.lineWidth=6;
+
+ctx.beginPath();
+ctx.moveTo(x-50,40);
+ctx.lineTo(x+50,40);
+ctx.stroke();
+
+let springLength=
+120+state.extension*300;
+
+ctx.beginPath();
+
+let coils=18;
+
+for(let i=0;i<=coils;i++){
+
+let yy=springTop+
+(i/coils)*springLength;
+
+let xx=
+x+
+(i%2===0?-25:25);
+
+if(i===0){
+ctx.moveTo(xx,yy);
+}else{
+ctx.lineTo(xx,yy);
+}
+
+}
+
+ctx.strokeStyle="#38bdf8";
+ctx.lineWidth=4;
+ctx.stroke();
+
+const massY=
+springTop+
+springLength;
+
+ctx.fillStyle="#f59e0b";
+
+ctx.fillRect(
+x-35,
+massY,
+70,
+70
+);
+
+ctx.fillStyle="white";
+
+ctx.fillText(
+state.F.toFixed(0)+" N",
+x-10,
+massY+95
+);
+
+drawGraph(state);
+}
+
+function drawGraph(state){
+
+const gx=450;
+const gy=100;
+
+const width=350;
+const height=250;
+
+ctx.strokeStyle="white";
+ctx.lineWidth=2;
+
+ctx.beginPath();
+ctx.moveTo(gx,gy);
+ctx.lineTo(gx,gy+height);
+ctx.lineTo(gx+width,gy+height);
+ctx.stroke();
+
+ctx.fillStyle="white";
+
+ctx.fillText(
+"Extension",
+gx+width/2,
+gy+height+35
+);
+
+ctx.save();
+ctx.translate(gx-35,gy+height/2);
+ctx.rotate(-Math.PI/2);
+ctx.fillText("Force",0,0);
+ctx.restore();
+
+ctx.beginPath();
+
+for(let f=0;f<=50;f++){
+
+let ext;
+
+if(f<=state.limit){
+ext=f/state.K;
+}else{
+ext=(state.limit/state.K)+
+(f-state.limit)/(state.K*0.25);
+}
+
+let px=
+gx+
+(ext*200);
+
+let py=
+gy+
+height-
+(f*4);
+
+if(f===0){
+ctx.moveTo(px,py);
+}else{
+ctx.lineTo(px,py);
+}
+
+}
+
+ctx.strokeStyle="#22c55e";
+ctx.lineWidth=3;
+ctx.stroke();
+
+let limitX=
+gx+
+(state.limit/state.K)*200;
+
+ctx.strokeStyle="red";
+
+ctx.setLineDash([6,6]);
+
+ctx.beginPath();
+ctx.moveTo(limitX,gy);
+ctx.lineTo(limitX,gy+height);
+ctx.stroke();
+
+ctx.setLineDash([]);
+
+ctx.fillStyle="red";
+
+ctx.fillText(
+"Limit of Proportionality",
+limitX-40,
+gy-10
+);
+
+}
+
+function animate(){
+
+requestAnimationFrame(animate);
+
+const state=update();
+
+draw(state);
+
+}
+
+animate();
+
+</script>
+
+</body>
+</html>
